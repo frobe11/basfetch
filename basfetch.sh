@@ -1,0 +1,104 @@
+#!/bin/bash
+
+set -eu # stop on error, undefined var = error,
+
+PROGRAM_NAME="$(basename "$0")"
+
+usage() {
+    echo "Usage: $PROGRAM_NAME [OPTIONS] <GIT_REPOSITORY>"
+    echo ""
+    echo "Install any cpp lib with CMake on your computer, you can use find_package() (if you don't know package name see hint after util execution) in CMake to find installed."
+    echo "By default all fetched sources located in $HOME/.local/share/$PROGRAM_NAME/GIT_REPOSITORY_NAME"
+    echo ""
+    echo "Options:"
+    echo "  -t, --temp            Git repository will be installed in temporary directory and will be deleted after installing"
+    echo "  -o, --output DIR      Git repository will be cloned to DIR. DON'T USE WITH -t OPTION"
+    echo "  -h, --help            Show help message"
+    exit 1
+}
+
+parse_args() {
+    ARGS=$(getopt -o to:h --long temp,output:,help -n "$PROGRAM_NAME" -- "$@")
+    eval set -- "$ARGS"
+    TEMP=false
+    DIR_SPEC=false
+    while true; do
+        case "$1" in
+        -t | --temp)
+            TEMP=true
+            shift
+            ;;
+        -o | --output)
+            OUTPUT_DIR="$2"
+            DIR_SPEC=true
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Error: unknown option: $1"
+            usage
+            ;;
+        esac
+    done
+
+    ARGS=("$@")
+}
+
+main() {
+    parse_args "$@"
+
+    if [[ "$TEMP" == true && "$DIR_SPEC" == true ]]; then
+        echo "Error: using this options together is unpermitted: -t and -o."
+        exit 1
+    fi
+
+    if [[ "${#ARGS[@]}" -gt 1 ]]; then
+        echo "Error: too many args: ${ARGS[*]}"
+        usage
+    fi
+
+    GIT_URL=$ARGS
+    if [[ "$TEMP" == true ]]; then
+        CLONE_DIR=$(mktemp -d /tmp/$PROGRAM_NAME.XXXXXX)
+        trap "sudo rm -rf $CLONE_DIR" EXIT
+    fi
+
+    if [[ "$DIR_SPEC" == true ]]; then
+        CLONE_DIR=$OUTPUT_DIR
+    fi
+
+    if [[ "$TEMP" == false && "$DIR_SPEC" == false ]]; then
+        GIT_NAME="${GIT_URL##*/}"
+        GIT_NAME="${GIT_NAME%.*}"
+        CLONE_DIR="$HOME/.local/share/$PROGRAM_NAME/$GIT_NAME"
+    fi
+
+    if [ -d "$CLONE_DIR" ]; then
+        sudo rm -rf $CLONE_DIR
+    fi
+
+    # mkdir -p $CLONE_DIR
+
+    git clone $GIT_URL $CLONE_DIR
+
+    cd $CLONE_DIR
+
+    # PROJ_NAME=$(grep '^project' CMakeLists.txt | awk -F'[ ()]' '{ print $2}')
+
+    mkdir -p build
+    cd build
+
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+    make
+    HINT=$(sudo make install |& tee /dev/tty | grep "ersion.cmake")
+    echo "find_package() Hint:"
+    echo $HINT
+}
+
+main "$@"
