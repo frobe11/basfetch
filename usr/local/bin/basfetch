@@ -7,6 +7,8 @@ PROGRAM_NAME="$(basename "$0")"
 usage() {
     echo "Usage: $PROGRAM_NAME [OPTIONS] <GIT_REPOSITORY>"
     echo ""
+    echo "Example: $PROGRAM_NAME -t https://github.com/laserpants/dotenv-cpp.git"
+    echo ""
     echo "Install any cpp lib with CMake on your computer, you can use find_package() (if you don't know package name see hint after util execution) in CMake to find installed."
     echo "By default all fetched sources located in $HOME/.local/share/$PROGRAM_NAME/GIT_REPOSITORY_NAME"
     echo ""
@@ -96,7 +98,11 @@ main() {
 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
     make
-    HINT=$(sudo make install |& tee /dev/tty | grep "ersion.cmake")
+
+    USR=$(whoami) 
+    CONSOLE=$(w -h -s | grep $USR | awk '{print $2}')
+
+    HINT=$(sudo make install |& tee /dev/$CONSOLE | grep "fig.cmake")
     echo "find_package() Hint:"
     echo $HINT
 }

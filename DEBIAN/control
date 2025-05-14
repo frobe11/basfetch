@@ -1,0 +1,12 @@
+Package: basfetch
+Version: 1.1
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: git, cmake, build-essential
+Maintainer: frobe11 <frobe11@mail.ru>
+Description: Utility to install and build C++ libraries from Git repositories
+ This script allows users to fetch a C++ library from a Git repository,
+ build it using CMake, and install it system-wide.
+ It outputs a hint for find_package() in CMake.
+Homepage: https://github.com/frobe11/basfetch 
